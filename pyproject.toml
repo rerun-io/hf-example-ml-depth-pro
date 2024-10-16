@@ -1,4 +1,17 @@
-# Copied from https://github.com/rerun-io/rerun_template
+[project]
+name = "hf-example-ml-depth-pro"
+version = "0.1.0"
+description = "A HuggingFace space example using Rerun to visualize DepthPro"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "attrs>=24.2.0",
+    "depth-pro",
+    "gradio>=4.44.1",
+    "gradio-rerun>=0.0.6",
+    "rerun-sdk==0.18.2",
+    "spaces>=0.30.3",
+]
 
 [tool.ruff]
 # https://beta.ruff.rs/docs/configuration/
@@ -70,3 +83,6 @@ lint.unfixable = [
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
+
+[tool.uv.sources]
+depth-pro = { git = "https://github.com/apple/ml-depth-pro" }
