@@ -75,8 +75,8 @@ def predict_depth(input_image):
 
 @rr.thread_local_stream("rerun_example_ml_depth_pro")
 def run_rerun(path_to_video):
-    stream = rr.binary_stream()
     print("video path:", path_to_video)
+    stream = rr.binary_stream()
 
     blueprint = rrb.Blueprint(
         rrb.Vertical(
@@ -103,8 +103,15 @@ def run_rerun(path_to_video):
 
     cap = cv2.VideoCapture(path_to_video)
     num_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    print(f"Number of frames in the video: {num_frames}")
+    fps_video = cap.get(cv2.CAP_PROP_FPS)
+
+    # limit the number of frames to 10 seconds of video
+    max_frames = min(10 * fps_video, num_frames)
+
     for i in range(len(frame_timestamps_ns)):
+        if i >= max_frames:
+            raise gr.Error("Reached the maximum number of frames to process")
+
         ret, frame = cap.read()
         if not ret:
             break
@@ -129,9 +136,7 @@ def run_rerun(path_to_video):
             rr.log(
                 "world/camera/frame",
                 rr.VideoFrameReference(
-                    timestamp=rr.components.VideoTimestamp(
-                        nanoseconds=frame_timestamps_ns[i]
-                    ),
+                    timestamp=rr.components.VideoTimestamp(nanoseconds=frame_timestamps_ns[i]),
                     video_reference="world/video",
                 ),
                 rr.Transform3D(scale=(x_scale, y_scale, 1)),
@@ -151,10 +156,7 @@ def run_rerun(path_to_video):
 
             yield stream.read()
         except Exception as e:
-            rr.log(
-                "error",
-                rr.TextLog(f"An error has occurred: {e}", level=rr.TextLogLevel.ERROR),
-            )
+            raise gr.Error(f"An error has occurred: {e}")
         finally:
             # Clean up the temporary file
             if temp_file and os.path.exists(temp_file):
@@ -169,19 +171,13 @@ with gr.Blocks() as interface:
         # DepthPro Rerun Demo
 
         [DepthPro](https://huggingface.co/apple/DepthPro) is a fast metric depth prediction model. Simply upload a video to visualize the depth predictions in real-time.
-        
+
         High resolution videos will be automatically resized to 256x256 pixels, to speed up the inference and visualize multiple frames.
         """
     )
     with gr.Row():
         with gr.Column(variant="compact"):
-            video = gr.Video(
-                format="mp4",
-                interactive=True,
-                label="Video",
-                include_audio=False,
-                max_length=10,
-            )
+            video = gr.Video(format="mp4", interactive=True, label="Video", include_audio=False)
             visualize = gr.Button("Visualize ML Depth Pro")
         with gr.Column():
             viewer = Rerun(
