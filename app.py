@@ -105,8 +105,6 @@ def run_rerun(path_to_video):
 
     # limit the number of frames to 10 seconds of video
     max_frames = min(10 * fps_video, num_frames)
-
-    torch.cuda.empty_cache()
     free_vram, _ = torch.cuda.mem_get_info(device)
     free_vram = free_vram / 1024 / 1024 / 1024
 
