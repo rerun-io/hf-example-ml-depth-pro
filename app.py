@@ -10,6 +10,7 @@ from gradio_rerun import Rerun
 import spaces
 from PIL import Image
 import tempfile
+import cv2
 
 # Run the script to get pretrained models
 if not os.path.exists("./checkpoints/depth_pro.pt"):
@@ -25,8 +26,8 @@ model = model.to(device)
 model.eval()
 
 
-def resize_image(image_path, max_size=1536):
-    with Image.open(image_path) as img:
+def resize_image(image_buffer, max_size=256):
+    with Image.fromarray(image_buffer) as img:
         # Calculate the new size while maintaining aspect ratio
         ratio = max_size / max(img.size)
         new_size = tuple([int(x * ratio) for x in img.size])
@@ -73,8 +74,9 @@ def predict_depth(input_image):
 
 
 @rr.thread_local_stream("rerun_example_ml_depth_pro")
-def run_rerun(path_to_image):
+def run_rerun(path_to_video):
     stream = rr.binary_stream()
+    print("video path:", path_to_video)
 
     blueprint = rrb.Blueprint(
         rrb.Vertical(
@@ -83,7 +85,7 @@ def run_rerun(path_to_image):
                 rrb.Spatial2DView(
                     origin="/world/camera/depth",
                 ),
-                rrb.Spatial2DView(origin="/world/camera/image"),
+                rrb.Spatial2DView(origin="/world/camera/frame"),
             ),
         ),
         collapse_panels=True,
@@ -93,71 +95,99 @@ def run_rerun(path_to_image):
 
     yield stream.read()
 
-    temp_file = None
-    try:
-        temp_file = resize_image(path_to_image)
-        rr.log("world/camera/image", rr.EncodedImage(path=temp_file))
-        yield stream.read()
+    video_asset = rr.AssetVideo(path=path_to_video)
+    rr.log("world/video", video_asset, static=True)
 
-        depth, focal_length = predict_depth(temp_file)
+    # Send automatically determined video frame timestamps.
+    frame_timestamps_ns = video_asset.read_frame_timestamps_ns()
 
-        rr.log(
-            "world/camera/depth",
-            rr.DepthImage(depth, meter=1),
-        )
+    cap = cv2.VideoCapture(path_to_video)
+    num_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    print(f"Number of frames in the video: {num_frames}")
+    for i in range(len(frame_timestamps_ns)):
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-        rr.log(
-            "world/camera",
-            rr.Pinhole(
-                focal_length=focal_length,
-                width=depth.shape[1],
-                height=depth.shape[0],
-                principal_point=(depth.shape[1] / 2, depth.shape[0] / 2),
-                camera_xyz=rr.ViewCoordinates.FLU,
-                image_plane_distance=depth.max(),
-            ),
-        )
-    except Exception as e:
-        rr.log(
-            "error",
-            rr.TextLog(f"An error has occurred: {e}", level=rr.TextLogLevel.ERROR),
-        )
-    finally:
-        # Clean up the temporary file
-        if temp_file and os.path.exists(temp_file):
-            os.remove(temp_file)
+        temp_file = None
+        try:
+            # Resize the image to make the inference faster
+            temp_file = resize_image(frame, max_size=256)
+
+            depth, focal_length = predict_depth(temp_file)
+
+            # find x and y scale factors, which can be applied to image
+            x_scale = depth.shape[1] / frame.shape[1]
+            y_scale = depth.shape[0] / frame.shape[0]
+
+            rr.set_time_nanos("video_time", frame_timestamps_ns[i])
+            rr.log(
+                "world/camera/depth",
+                rr.DepthImage(depth, meter=1),
+            )
+
+            rr.log(
+                "world/camera/frame",
+                rr.VideoFrameReference(
+                    timestamp=rr.components.VideoTimestamp(
+                        nanoseconds=frame_timestamps_ns[i]
+                    ),
+                    video_reference="world/video",
+                ),
+                rr.Transform3D(scale=(x_scale, y_scale, 1)),
+            )
+
+            rr.log(
+                "world/camera",
+                rr.Pinhole(
+                    focal_length=focal_length,
+                    width=depth.shape[1],
+                    height=depth.shape[0],
+                    principal_point=(depth.shape[1] / 2, depth.shape[0] / 2),
+                    camera_xyz=rr.ViewCoordinates.FLU,
+                    image_plane_distance=depth.max(),
+                ),
+            )
+
+            yield stream.read()
+        except Exception as e:
+            rr.log(
+                "error",
+                rr.TextLog(f"An error has occurred: {e}", level=rr.TextLogLevel.ERROR),
+            )
+        finally:
+            # Clean up the temporary file
+            if temp_file and os.path.exists(temp_file):
+                os.remove(temp_file)
 
     yield stream.read()
 
-
-# Example images
-example_images = [
-    "examples/lemur.jpg",
-    "examples/silly-cat.png",
-]
 
 with gr.Blocks() as interface:
     gr.Markdown(
         """
         # DepthPro Rerun Demo
 
-        [DepthPro](https://huggingface.co/apple/DepthPro) is a fast metric depth prediction model. Simply upload an image to predict its inverse depth map and focal length. Large images will be automatically resized to 1536x1536 pixels.
+        [DepthPro](https://huggingface.co/apple/DepthPro) is a fast metric depth prediction model. Simply upload a video to visualize the depth predictions in real-time.
+        
+        High resolution videos will be automatically resized to 256x256 pixels, to speed up the inference and visualize multiple frames.
         """
     )
     with gr.Row():
         with gr.Column(variant="compact"):
-            image = gr.Image(type="filepath", interactive=True, label="Image")
-            visualize = gr.Button("Visualize ML Depth Pro")
-            examples = gr.Examples(
-                example_images,
-                label="Example Images",
-                inputs=[image],
+            video = gr.Video(
+                format="mp4",
+                interactive=True,
+                label="Video",
+                include_audio=False,
+                max_length=10,
             )
+            visualize = gr.Button("Visualize ML Depth Pro")
         with gr.Column():
             viewer = Rerun(
                 streaming=True,
             )
-        visualize.click(run_rerun, inputs=[image], outputs=[viewer])
+        visualize.click(run_rerun, inputs=[video], outputs=[viewer])
 
 
 if __name__ == "__main__":

@@ -8,9 +8,9 @@ dependencies = [
     "attrs>=24.2.0",
     "depth-pro",
     "gradio>=4.44.1",
-    "gradio-rerun>=0.0.6",
-    "rerun-sdk==0.18.2",
-    "spaces>=0.30.3",
+    "gradio-rerun>=0.0.8",
+    "rerun-sdk==0.19.0",
+    "spaces>=0.30.4",
 ]
 
 [tool.ruff]

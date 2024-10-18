@@ -386,16 +386,16 @@ wheels = [
 
 [[package]]
 name = "gradio-rerun"
-version = "0.0.6"
+version = "0.0.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gradio" },
     { name = "opencv-python" },
     { name = "rerun-sdk" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/78/0e70e572f159ca4060ded3a49f8bbb25fb4dca57ab7b0c2b0ca759e57c57/gradio_rerun-0.0.6.tar.gz", hash = "sha256:291f5c827f6db1ce01eeed1ef461ac252a4209cdaaf2792b40d7f06e8ffccba3", size = 52014801 }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/60/20f12781d9dd304628564135cd39e0dc35110392fda326d9e3748ec6f69c/gradio_rerun-0.0.8.tar.gz", hash = "sha256:d5fcd11d36bb184c5fcd4b52641e14f30af33427a72e442b1bd71d0e14079212", size = 52655248 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/d4/90fb4f54a7707b2beec2fb0ef5c97659eeb6776b45ff5d46193bea7c2f7b/gradio_rerun-0.0.6-py3-none-any.whl", hash = "sha256:5619aed9580c79f4eae6871602ca7409db2d67cf5cc35cfe4a6083be26a75fa2", size = 10842538 },
+    { url = "https://files.pythonhosted.org/packages/b2/a9/05fdea851d5c7e4d4d256ae7789d0a64b6e844a637fd010f75944c1e8b43/gradio_rerun-0.0.8-py3-none-any.whl", hash = "sha256:d4587adf65ee7d415973e35c4c44c6dfa7b7ebd3a3f0cbe1d77179a3d0c464b2", size = 11483949 },
 ]
 
 [[package]]
@@ -425,9 +425,9 @@ requires-dist = [
     { name = "attrs", specifier = ">=24.2.0" },
     { name = "depth-pro", git = "https://github.com/apple/ml-depth-pro" },
     { name = "gradio", specifier = ">=4.44.1" },
-    { name = "gradio-rerun", specifier = ">=0.0.6" },
-    { name = "rerun-sdk", specifier = "==0.18.2" },
-    { name = "spaces", specifier = ">=0.30.3" },
+    { name = "gradio-rerun", specifier = ">=0.0.8" },
+    { name = "rerun-sdk", specifier = "==0.19.0" },
+    { name = "spaces", specifier = ">=0.30.4" },
 ]
 
 [[package]]
@@ -779,7 +779,7 @@ name = "nvidia-cudnn-cu12"
 version = "9.1.0.70"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'aarch64' and platform_system != 'Darwin') or (platform_system != 'Darwin' and platform_system != 'Linux')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9f/fd/713452cd72343f682b1c7b9321e23829f00b842ceaedcda96e742ea0b0b3/nvidia_cudnn_cu12-9.1.0.70-py3-none-manylinux2014_x86_64.whl", hash = "sha256:165764f44ef8c61fcdfdfdbe769d687e06374059fbb388b6c89ecb0e28793a6f", size = 664752741 },
@@ -806,9 +806,9 @@ name = "nvidia-cusolver-cu12"
 version = "11.4.5.107"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12" },
-    { name = "nvidia-cusparse-cu12" },
-    { name = "nvidia-nvjitlink-cu12" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'aarch64' and platform_system != 'Darwin') or (platform_system != 'Darwin' and platform_system != 'Linux')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine != 'aarch64' and platform_system != 'Darwin') or (platform_system != 'Darwin' and platform_system != 'Linux')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and platform_system != 'Darwin') or (platform_system != 'Darwin' and platform_system != 'Linux')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/1d/8de1e5c67099015c834315e333911273a8c6aaba78923dd1d1e25fc5f217/nvidia_cusolver_cu12-11.4.5.107-py3-none-manylinux1_x86_64.whl", hash = "sha256:8a7ec542f0412294b15072fa7dab71d31334014a69f953004ea7a118206fe0dd", size = 124161928 },
@@ -819,7 +819,7 @@ name = "nvidia-cusparse-cu12"
 version = "12.1.0.106"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and platform_system != 'Darwin') or (platform_system != 'Darwin' and platform_system != 'Linux')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/65/5b/cfaeebf25cd9fdec14338ccb16f6b2c4c7fa9163aefcf057d86b9cc248bb/nvidia_cusparse_cu12-12.1.0.106-py3-none-manylinux1_x86_64.whl", hash = "sha256:f3b50f42cf363f86ab21f720998517a659a48131e8d538dc02f8768237bd884c", size = 195958278 },
@@ -1319,7 +1319,7 @@ wheels = [
 
 [[package]]
 name = "rerun-sdk"
-version = "0.18.2"
+version = "0.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1329,11 +1329,11 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/57/28eca6dd15bb4f22d8db6b10107b0150f926bfee00d9921ee3666d94ea21/rerun_sdk-0.18.2-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:bc4e73275f428e4e9feb8e85f88db7a9fd18b997b1570de62f949a926978f1b2", size = 33042864 },
-    { url = "https://files.pythonhosted.org/packages/97/6c/712f82dcf774f1b9cd7bc4e9a7dc190f2088de22e33ad66486c8058c5455/rerun_sdk-0.18.2-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:efbba40a59710ae83607cb0dc140398a35979c2d2acf5190c9def2ac4697f6a8", size = 32104282 },
-    { url = "https://files.pythonhosted.org/packages/83/f9/fe349c911cd61df85167fccffdafedcc923dd2eed055f811b957c8b738b5/rerun_sdk-0.18.2-cp38-abi3-manylinux_2_31_aarch64.whl", hash = "sha256:2a5e3b618b6d1bfde09bd5614a898995f3c318cc69d8f6d569924a2cd41536ce", size = 38459061 },
-    { url = "https://files.pythonhosted.org/packages/c9/88/ee72d28bdf8e1821fe6cd3e1de85ca7931706452b4892cb4a90256d78cf0/rerun_sdk-0.18.2-cp38-abi3-manylinux_2_31_x86_64.whl", hash = "sha256:8fdfc4c51ef2e75cb68d39e56f0d7c196eff250cb9a0260c07d5e2d6736e31b0", size = 38761761 },
-    { url = "https://files.pythonhosted.org/packages/01/36/f0675261e1e620141515b837f65b015cda05a493153c59158b0ac1b80a3c/rerun_sdk-0.18.2-cp38-abi3-win_amd64.whl", hash = "sha256:c929ade91d3be301b26671b25e70fb529524ced915523d266641c6fc667a1eb5", size = 29534437 },
+    { url = "https://files.pythonhosted.org/packages/c4/59/cfea9527a2f56652c9f2e54151c8a0d2b572b7f1255ca9bc6ea8ad2fd7ce/rerun_sdk-0.19.0-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:49a48d6d5d7de662ef3e83dc262e65705fa719726f6bc6deefad27c4b6d34e98", size = 37415314 },
+    { url = "https://files.pythonhosted.org/packages/d9/16/0d7099d537bf2f73988ac93f5075d4fd717e96c25697b3ea16af8bcc2cda/rerun_sdk-0.19.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:c8012b4e517a911a782472dc97ebbdc6ed4261b44bfdd0e0a0c64496f17ddc91", size = 35743438 },
+    { url = "https://files.pythonhosted.org/packages/cf/35/eaabd19deaa2bbb121df3a6949206f02ad6cff122d8ad6ba0fcdeeb972c6/rerun_sdk-0.19.0-cp38-abi3-manylinux_2_31_aarch64.whl", hash = "sha256:65bb8ddf9611827c31d5502f9d1ee997c1facbbdf5dce9a268f0aa6bcaea5439", size = 39794278 },
+    { url = "https://files.pythonhosted.org/packages/8b/2c/1e06376a531431855c4ea12865aba0d83a1a1d0537a544191d09d3b44eea/rerun_sdk-0.19.0-cp38-abi3-manylinux_2_31_x86_64.whl", hash = "sha256:6a49fde1c9d0691166402707ec3b317bf0d82fb1b4412b98e02ccbf499d9b92d", size = 41301646 },
+    { url = "https://files.pythonhosted.org/packages/b2/57/948b518f3db30b8dd27d1dc0280acc6510289a79675dcb523ccfcced39d6/rerun_sdk-0.19.0-cp38-abi3-win_amd64.whl", hash = "sha256:da304927485cb4e6afe25ea8ed84c0cb7e63f3ba8ce2c72a1034ae1ffc69a6c0", size = 33573220 },
 ]
 
 [[package]]
@@ -1619,7 +1619,7 @@ name = "triton"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock" },
+    { name = "filelock", marker = "(python_full_version < '3.13' and platform_machine != 'aarch64' and platform_system != 'Darwin') or (python_full_version < '3.13' and platform_system != 'Darwin' and platform_system != 'Linux')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/45/27/14cc3101409b9b4b9241d2ba7deaa93535a217a211c86c4cc7151fb12181/triton-3.0.0-1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:e1efef76935b2febc365bfadf74bcb65a6f959a9872e5bddf44cc9e0adce1e1a", size = 209376304 },

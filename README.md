@@ -12,5 +12,6 @@ app_file: app.py
 
 [DepthPro](https://huggingface.co/apple/DepthPro) is a fast metric depth prediction model.
 
-Simply upload an image to predict its inverse depth map and focal length.
-Large images will be automatically resized to1536x1536 pixels.
+Simply upload a video to visualize the depth predictions in real-time.
+
+High resolution videos will be automatically resized to 256x256 pixels, to speed up the inference and visualize multiple frames.
