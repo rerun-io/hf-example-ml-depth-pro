@@ -42,18 +42,16 @@ def resize_image(image_buffer, max_size=256):
 
 
 @spaces.GPU(duration=20)
-def predict_depth(input_image):
-    # Preprocess the image
-    result = depth_pro.load_rgb(input_image)
-    image = result[0]
-    f_px = result[-1]  # Assuming f_px is the last item in the returned tuple
-    image = transform(image)
-    image = image.to(device)
+def predict_depth(input_images):
+    results = [depth_pro.load_rgb(image) for image in input_images]
+    images = torch.stack([transform(result[0]) for result in results])
+    images = images.to(device)
 
     # Run inference
-    prediction = model.infer(image, f_px=f_px)
-    depth = prediction["depth"]  # Depth in [m]
-    focallength_px = prediction["focallength_px"]  # Focal length in pixels
+    with torch.no_grad():
+        prediction = model.infer(images)
+        depth = prediction["depth"]  # Depth in [m]
+        focallength_px = prediction["focallength_px"]  # Focal length in pixels
 
     # Convert depth to numpy array if it's a torch tensor
     if isinstance(depth, torch.Tensor):
@@ -61,9 +59,9 @@ def predict_depth(input_image):
 
     # Convert focal length to a float if it's a torch tensor
     if isinstance(focallength_px, torch.Tensor):
-        focallength_px = focallength_px.item()
+        focallength_px = [focal_length.item() for focal_length in focallength_px]
 
-    # Ensure depth is a 2D numpy array
+    # Ensure depth is a BxHxW tensor
     if depth.ndim != 2:
         depth = depth.squeeze()
 
@@ -108,59 +106,73 @@ def run_rerun(path_to_video):
     # limit the number of frames to 10 seconds of video
     max_frames = min(10 * fps_video, num_frames)
 
-    for i in range(len(frame_timestamps_ns)):
+    torch.cuda.empty_cache()
+    free_vram, _ = torch.cuda.mem_get_info(device)
+    free_vram = free_vram / 1024 / 1024 / 1024
+
+    # batch size is determined by the amount of free vram
+    batch_size = int(min(min(8, free_vram // 4), max_frames))
+
+    # go through all the frames in the video, using the batch size
+    for i in range(0, int(max_frames), batch_size):
         if i >= max_frames:
             raise gr.Error("Reached the maximum number of frames to process")
 
-        ret, frame = cap.read()
-        if not ret:
-            break
+        frames = []
+        frame_indices = list(range(i, min(i + batch_size, int(max_frames))))
+        for _ in range(batch_size):
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frames.append(frame)
 
-        temp_file = None
+        temp_files = []
         try:
-            # Resize the image to make the inference faster
-            temp_file = resize_image(frame, max_size=256)
+            # Resize the images to make the inference faster
+            temp_files = [resize_image(frame, max_size=256) for frame in frames]
 
-            depth, focal_length = predict_depth(temp_file)
+            depths, focal_lengths = predict_depth(temp_files)
 
-            # find x and y scale factors, which can be applied to image
-            x_scale = depth.shape[1] / frame.shape[1]
-            y_scale = depth.shape[0] / frame.shape[0]
+            for depth, focal_length, frame_idx in zip(depths, focal_lengths, frame_indices):
+                # find x and y scale factors, which can be applied to image
+                x_scale = depth.shape[1] / frames[0].shape[1]
+                y_scale = depth.shape[0] / frames[0].shape[0]
 
-            rr.set_time_nanos("video_time", frame_timestamps_ns[i])
-            rr.log(
-                "world/camera/depth",
-                rr.DepthImage(depth, meter=1),
-            )
+                rr.set_time_nanos("video_time", frame_timestamps_ns[frame_idx])
+                rr.log(
+                    "world/camera/depth",
+                    rr.DepthImage(depth, meter=1),
+                )
 
-            rr.log(
-                "world/camera/frame",
-                rr.VideoFrameReference(
-                    timestamp=rr.components.VideoTimestamp(nanoseconds=frame_timestamps_ns[i]),
-                    video_reference="world/video",
-                ),
-                rr.Transform3D(scale=(x_scale, y_scale, 1)),
-            )
+                rr.log(
+                    "world/camera/frame",
+                    rr.VideoFrameReference(
+                        timestamp=rr.components.VideoTimestamp(nanoseconds=frame_timestamps_ns[frame_idx]),
+                        video_reference="world/video",
+                    ),
+                    rr.Transform3D(scale=(x_scale, y_scale, 1)),
+                )
 
-            rr.log(
-                "world/camera",
-                rr.Pinhole(
-                    focal_length=focal_length,
-                    width=depth.shape[1],
-                    height=depth.shape[0],
-                    principal_point=(depth.shape[1] / 2, depth.shape[0] / 2),
-                    camera_xyz=rr.ViewCoordinates.FLU,
-                    image_plane_distance=depth.max(),
-                ),
-            )
+                rr.log(
+                    "world/camera",
+                    rr.Pinhole(
+                        focal_length=focal_length,
+                        width=depth.shape[1],
+                        height=depth.shape[0],
+                        principal_point=(depth.shape[1] / 2, depth.shape[0] / 2),
+                        camera_xyz=rr.ViewCoordinates.FLU,
+                        image_plane_distance=depth.max(),
+                    ),
+                )
 
-            yield stream.read()
+                yield stream.read()
         except Exception as e:
             raise gr.Error(f"An error has occurred: {e}")
         finally:
-            # Clean up the temporary file
-            if temp_file and os.path.exists(temp_file):
-                os.remove(temp_file)
+            # Clean up the temporary files
+            for temp_file in temp_files:
+                if temp_file and os.path.exists(temp_file):
+                    os.remove(temp_file)
 
     yield stream.read()
 
